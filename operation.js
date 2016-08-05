@@ -77,16 +77,19 @@ chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {
 
         chrome.downloads.download({
             url: dest,
-            filename: name,
+            filename: name
         });
     }
     else if (info.menuItemId == "tistory") {
 
-        var srcLink = info.srcUrl;
-        var preUrl = srcLink.substring(0, srcLink.indexOf("/", 8));
-        var postUrl = srcLink.substring(srcLink.lastIndexOf("/"), srcLink.length);
-        var dest = preUrl + "/original" + postUrl;
-        
+		var post = info.srcUrl.substring(info.srcUrl.lastIndexOf("=")+1,info.srcUrl.length);
+		
+		post = decodeURIComponent(post);
+		
+		var preUrl = post.substring(0, post.indexOf("/", 8));
+        var postUrl = post.substring(post.lastIndexOf("/"), post.length);
+		var dest = preUrl + "/original" + postUrl;
+		
         chrome.downloads.download({
             url: dest
         });
