@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Original Image Downloader",
   "description": "트위터, 티스토리에서 원본 이미지를 쉽게 다운받아주는 확장 프로그램",
-  "version": "0.2",
+  "version": "0.21",
   "permissions": [
     "contextMenus",
     "downloads",
