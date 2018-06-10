@@ -77,19 +77,16 @@ chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {
 
         chrome.downloads.download({
             url: dest,
-            filename: name
+            filename: name,
         });
     }
     else if (info.menuItemId == "tistory") {
 
-		var post = info.srcUrl.substring(info.srcUrl.lastIndexOf("=")+1,info.srcUrl.length);
-		
-		post = decodeURIComponent(post);
-		
-		var preUrl = post.substring(0, post.indexOf("/", 8));
-        var postUrl = post.substring(post.lastIndexOf("/"), post.length);
-		var dest = preUrl + "/original" + postUrl;
-		
+        var srcLink = info.srcUrl;
+        //var preUrl = srcLink.substring(0, srcLink.indexOf("/", 8));
+       // var postUrl = srcLink.substring(srcLink.lastIndexOf("/"), srcLink.length);
+        var dest = srcLink + "?original";
+        
         chrome.downloads.download({
             url: dest
         });
@@ -100,7 +97,7 @@ chrome.browserAction.onClicked.addListener(function (tab) { //Fired when User Cl
     if (toggle == false) {
         chrome.browserAction.setIcon({
             path: {
-                64: "icon.png"
+                64: "./icon128.png"
             }
         });
 
@@ -111,7 +108,7 @@ chrome.browserAction.onClicked.addListener(function (tab) { //Fired when User Cl
     } else {
         chrome.browserAction.setIcon({
             path: {
-                64: "icon-off.png"
+                64: "./off.png"
             }
         });
 
