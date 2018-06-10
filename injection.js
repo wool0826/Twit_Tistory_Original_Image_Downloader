@@ -1,8 +1,12 @@
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    if (request == "exist?") { sendResponse("yes"); return; }
-    else {
+    if (request == "exist") { sendResponse("yes"); return; }
+	else if(request == "insta"){
+		var d = document.getElementsByClassName("FFVAD");
+		sendResponse(d[d.length-1].src);
+		return;
+	} else {
         if (request.includes("tistory.com")) {
-            console.log("url tistory.");
+            console.log("This site is tistory. return true.");
             sendResponse(true);
             return;
         }
@@ -11,13 +15,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
         for (var i = 0; i < script.length; i++) {
             if (script[i].innerHTML.includes("T.config") || script[i].innerHTML.includes("tistory")) {
-                console.log("includes... -> return true");
+                console.log("This site is tistory. return true.");
                 sendResponse(true);
                 return;
             }
         }
 
-        console.log("not includes... -> return false");
+        console.log("This site is not tistory. return false.");
         sendResponse(false);
     }
 });
