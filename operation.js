@@ -10,7 +10,7 @@ function createTistoryMenu() {
         });
         created = true;
 
-        console.log("Tistory Menu Created.");
+        //console.log("Tistory Menu Created.");
     }
 }
 
@@ -18,7 +18,7 @@ function removeTistoryMenu() {
     if (created == true) {
         chrome.contextMenus.remove("tistory");
         created = false;
-        console.log("Tistory Menu Removed.");
+        //console.log("Tistory Menu Removed.");
     }
 }
 
@@ -61,16 +61,16 @@ function checkInstagram(){
 	chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
 		chrome.tabs.sendMessage(tabs[0].id, "exist", function (response) {
 			if (response == "yes") {
-				console.log("responsed.");
+				//console.log("responsed.");
 				chrome.tabs.sendMessage(tabs[0].id, "insta" , function (response) {
 					chrome.downloads.download({
 						url: response
-					});
+                    });
 				});
 			}
 			else {
 				chrome.tabs.executeScript(tabs[0].id, { file: "injection.js" }, function () {
-					console.log("injection.");
+					//console.log("injection.");
 					if (chrome.runtime.lastError) {
 						console.error(chrome.runtime.lastError);
 						throw Error("Unable to inject script into tab" + tabs[0].id);
@@ -78,7 +78,7 @@ function checkInstagram(){
 					chrome.tabs.sendMessage(tabs[0].id, "insta" , function (response) {
 						chrome.downloads.download({
 							url: response
-						});
+                        });               
 					});
 				});
 			}
@@ -150,13 +150,13 @@ chrome.browserAction.onClicked.addListener(function (tab) { //Fired when User Cl
 });
 
 chrome.tabs.onActiveChanged.addListener(function callback(tabId, selectInfo) {
-    console.log("onActiveChanged");
+    //console.log("onActiveChanged");
     checkTistory();
 });
 
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
     if (changeInfo.status == "complete") {
-        console.log("onUpdated " + tab.url);
+        //console.log("onUpdated " + tab.url);
         if (tab.url.includes("twitter.com") || tab.url.includes("instagram.com") ) {
             removeTistoryMenu();
         } else {
