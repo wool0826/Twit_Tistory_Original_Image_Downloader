@@ -1,8 +1,8 @@
 {
 	"manifest_version": 2,
 	"name": "Original Image Downloader",
-	"description": "트위터, 티스토리, 인스타그램에서 원본 이미지를 쉽게 다운받아주는 확장 프로그램",
-	"version": "0.24",
+	"description": "트위터,티스토리,인스타그램,다음카페에서 원본 이미지를 쉽게 다운받아주는 프로그램",
+	"version": "0.25",
 	"permissions": [
 		"contextMenus",
 		"downloads",
@@ -20,5 +20,9 @@
 	},
 	"browser_action": {
 		"default_icon":  "off.png"
+	},
+	"options_ui": {
+		"page": "options.html",
+		"open_in_tab": false
 	}
 }

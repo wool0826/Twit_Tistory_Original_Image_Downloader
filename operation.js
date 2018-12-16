@@ -1,16 +1,76 @@
 var activated = false;
 var created = false;
 
+var tiTitle = "Download Original Image[tistory]";
+var inTitle = "Download Original Image[instagram]";
+var twTitle = "Download Original Image[twitter]";
+var dmTitle = "Download Original Image[daum]";
+
+var hotkey = "None";
+
+chrome.storage.local.get({
+    hotkeyOption: "None"
+}, function(items){    
+    hotkey = items.hotkeyOption;
+    console.log("First Generated hotkey:" + hotkey);
+
+    chrome.contextMenus.create({
+        title: (hotkey!="None" ? hotkey + ") " + twTitle : twTitle),
+        contexts: ["image"],
+        documentUrlPatterns: ["https://twitter.com/*"],
+        id: "twitter"
+    });
+
+    chrome.contextMenus.create({
+        title: (hotkey!="None" ? hotkey + ") " + dmTitle : dmTitle),
+        contexts: ["image"],
+        documentUrlPatterns: ["https://*.daum.net/*","http://*.daum.net/*"],
+        id: "daum"
+    });
+
+    chrome.contextMenus.create({
+        title: (hotkey!="None" ? hotkey + ") " + inTitle : inTitle),
+        contexts: ["page"],
+        documentUrlPatterns: ["https://www.instagram.com/*"],
+        id: "instagram"
+    });
+});
+
+chrome.storage.onChanged.addListener(function(changes, namespace){
+    chrome.storage.local.get({
+        hotkeyOption: "None"
+    }, function(items){
+        hotkey = items.hotkeyOption;
+        console.log("Changed hotkey: " + hotkey);
+
+        chrome.contextMenus.update("twitter",{
+            title: (hotkey!="None" ? hotkey + ") " + twTitle : twTitle)
+        });
+
+        chrome.contextMenus.update("daum",{
+            title: (hotkey!="None" ? hotkey + ") " + dmTitle : dmTitle)
+        });
+    
+        chrome.contextMenus.update("instagram",{
+            title: (hotkey!="None" ? hotkey + ") " + inTitle : inTitle)
+        });
+
+        if(created){
+            chrome.contextMenus.update("tistory",{
+                title: (hotkey!="None" ? hotkey + ") " + tiTitle : tiTitle)
+            });
+        }
+    }); 
+});
+
 function createTistoryMenu() {
     if (created == false) {
         chrome.contextMenus.create({
-            title: "Download Original Image[tistory]",
+            title: (hotkey!="None" ? hotkey + ") " + tiTitle : tiTitle),
             contexts: ["image"],
             id: "tistory"
         });
         created = true;
-
-        //console.log("Tistory Menu Created.");
     }
 }
 
@@ -18,7 +78,6 @@ function removeTistoryMenu() {
     if (created == true) {
         chrome.contextMenus.remove("tistory");
         created = false;
-        //console.log("Tistory Menu Removed.");
     }
 }
 
@@ -61,7 +120,6 @@ function checkInstagram(){
 	chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
 		chrome.tabs.sendMessage(tabs[0].id, "exist", function (response) {
 			if (response == "yes") {
-				//console.log("responsed.");
 				chrome.tabs.sendMessage(tabs[0].id, "insta" , function (response) {
 					chrome.downloads.download({
 						url: response
@@ -70,7 +128,6 @@ function checkInstagram(){
 			}
 			else {
 				chrome.tabs.executeScript(tabs[0].id, { file: "injection.js" }, function () {
-					//console.log("injection.");
 					if (chrome.runtime.lastError) {
 						console.error(chrome.runtime.lastError);
 						throw Error("Unable to inject script into tab" + tabs[0].id);
@@ -86,19 +143,7 @@ function checkInstagram(){
 	});
 }
 
-chrome.contextMenus.create({
-    title: "Download Original Image[twitter]",
-    contexts: ["image"],
-    documentUrlPatterns: ["https://twitter.com/*"],
-    id: "twitter"
-});
 
-chrome.contextMenus.create({
-	title: "Download Original Image[instagram]",
-    contexts: ["all"],
-    documentUrlPatterns: ["https://www.instagram.com/*"],
-    id: "instagram"
-});
 
 chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {
     if (info.menuItemId == "twitter") {
@@ -111,7 +156,7 @@ chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {
             filename: name,
         });
     }
-    else if (info.menuItemId == "tistory") {
+    else if (info.menuItemId == "tistory" || info.menuItemId == "daum") {
 
         var srcLink = info.srcUrl;
 		// for version 2.1
@@ -150,13 +195,11 @@ chrome.browserAction.onClicked.addListener(function (tab) { //Fired when User Cl
 });
 
 chrome.tabs.onActiveChanged.addListener(function callback(tabId, selectInfo) {
-    //console.log("onActiveChanged");
     checkTistory();
 });
 
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
     if (changeInfo.status == "complete") {
-        //console.log("onUpdated " + tab.url);
         if (tab.url.includes("twitter.com") || tab.url.includes("instagram.com") ) {
             removeTistoryMenu();
         } else {
