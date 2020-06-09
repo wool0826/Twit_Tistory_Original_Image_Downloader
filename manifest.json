@@ -1,8 +1,8 @@
 {
 	"manifest_version": 2,
-	"name": "Original Image Downloader",
+	"name": "Original Size Image Downloader",
 	"description": "트위터,티스토리,인스타그램,다음카페에서 원본 이미지를 쉽게 다운받아주는 프로그램",
-	"version": "0.25",
+	"version": "0.30",
 	"permissions": [
 		"contextMenus",
 		"downloads",
@@ -14,12 +14,12 @@
 		"scripts": [ "operation.js" ]
 	},
 	"icons": {
-		"16": "on.png",
-		"48": "on.png",
-		"128": "on.png"
+		"16": "icon128.png",
+		"48": "icon128.png",
+		"128": "icon128.png"
 	},
 	"browser_action": {
-		"default_icon":  "off.png"
+		"default_icon":  "icon128.png"
 	},
 	"options_ui": {
 		"page": "options.html",

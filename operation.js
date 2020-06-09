@@ -1,212 +1,199 @@
-var activated = false;
-var created = false;
-
-var tiTitle = "Download Original Image[tistory]";
-var inTitle = "Download Original Image[instagram]";
-var twTitle = "Download Original Image[twitter]";
-var dmTitle = "Download Original Image[daum]";
-
+/* Variables */
 var hotkey = "None";
+var tistoryMenuCreatedYn = false;
 
+/* Constant Values */
+const menuText = "Download Original Image";
+const imagePatterns =  [
+    "https://twitter.com/*", 
+    "https://*.daum.net/*", 
+    "http://*.daum.net/*",
+    "https://*.tistory.com/*"
+];
+const pagePatterns = ["https://www.instagram.com/p/*"];
+
+const urlRegexp = {
+    'twitter' : new RegExp(/https:\/\/twitter\.com\/(\S)*/, 'g'),
+    'daum' : new RegExp(/(\w)*\.daum\.net\/(\S)*/, 'g'),
+    'instagram' : new RegExp(/https:\/\/www.instagram\.com\/[\S]*/, 'g'),
+    'tistory' : new RegExp(/https:\/\/(\w)*.tistory\.com\/[\S]*/, 'g')
+};
+
+/* Chrome Settings */
 chrome.storage.local.get({
     hotkeyOption: "None"
-}, function(items){    
+}, function(items) {    
     hotkey = items.hotkeyOption;
-    console.log("First Generated hotkey:" + hotkey);
 
     chrome.contextMenus.create({
-        title: (hotkey!="None" ? hotkey + ") " + twTitle : twTitle),
+        title: getMenuText(),
         contexts: ["image"],
-        documentUrlPatterns: ["https://twitter.com/*"],
-        id: "twitter"
+        documentUrlPatterns: imagePatterns,
+        id: "image"
     });
 
     chrome.contextMenus.create({
-        title: (hotkey!="None" ? hotkey + ") " + dmTitle : dmTitle),
-        contexts: ["image"],
-        documentUrlPatterns: ["https://*.daum.net/*","http://*.daum.net/*"],
-        id: "daum"
-    });
-
-    chrome.contextMenus.create({
-        title: (hotkey!="None" ? hotkey + ") " + inTitle : inTitle),
+        title: getMenuText(),
         contexts: ["page"],
-        documentUrlPatterns: ["https://www.instagram.com/*"],
-        id: "instagram"
+        documentUrlPatterns: pagePatterns,
+        id: "page"
     });
 });
 
-chrome.storage.onChanged.addListener(function(changes, namespace){
+chrome.storage.onChanged.addListener(function(changes, namespace) {
     chrome.storage.local.get({
         hotkeyOption: "None"
-    }, function(items){
+    }, function(items) {
         hotkey = items.hotkeyOption;
-        console.log("Changed hotkey: " + hotkey);
 
-        chrome.contextMenus.update("twitter",{
-            title: (hotkey!="None" ? hotkey + ") " + twTitle : twTitle)
+        chrome.contextMenus.update("image", {
+            title: getMenuText()
         });
 
-        chrome.contextMenus.update("daum",{
-            title: (hotkey!="None" ? hotkey + ") " + dmTitle : dmTitle)
+        chrome.contextMenus.update("page", {
+            title: getMenuText()
         });
-    
-        chrome.contextMenus.update("instagram",{
-            title: (hotkey!="None" ? hotkey + ") " + inTitle : inTitle)
-        });
-
-        if(created){
-            chrome.contextMenus.update("tistory",{
-                title: (hotkey!="None" ? hotkey + ") " + tiTitle : tiTitle)
-            });
-        }
     }); 
 });
 
-function createTistoryMenu() {
-    if (created == false) {
-        chrome.contextMenus.create({
-            title: (hotkey!="None" ? hotkey + ") " + tiTitle : tiTitle),
-            contexts: ["image"],
-            id: "tistory"
+function getMenuText() {
+    return (hotkey == "None" ? "" : hotkey) + menuText;
+}
+
+
+/* Download */
+chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {    
+    if (tab.url.match(urlRegexp['twitter']) != null) {
+        var urlMap = parsingUrl(info.srcUrl);
+
+        chrome.downloads.download({
+            url: urlMap["baseUrl"] + "?format=jpg&name=4096x4096",
+            filename: urlMap["fileName"] + ".jpg"
         });
-        created = true;
+    } else if (tab.url.match(urlRegexp['daum']) != null || tab.url.match(urlRegexp['tistory']) != null) {
+        chrome.downloads.download({
+            url: info.srcUrl + "?original"
+        });
+    } else if (tab.url.match(urlRegexp['instagram']) != null) {
+        downloadInstagramImage();
+    } else if (info.menuItemId == 'tistory') {
+        chrome.downloads.download({
+            url: info.srcUrl + "?original"
+        });
+    } else {
+        alert("인식할 수 없는 URL입니다!. " + tab.url);
     }
+});
+
+function parsingUrl(url) {
+    var map = {};
+    var baseSplit = url.split('?');
+
+    map["baseUrl"] = baseSplit[0];
+    map["fileName"] = baseSplit[0].split("/")[4];
+
+    return map;
 }
 
-function removeTistoryMenu() {
-    if (created == true) {
-        chrome.contextMenus.remove("tistory");
-        created = false;
-    }
-}
+function downloadInstagramImage() {
+    console.log("[download_Insta] ENTER");
 
-function checkTistory() {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        if (activated) {
-            if (!tabs[0].url.includes("chrome://")) {
-                chrome.tabs.sendMessage(tabs[0].id, "exist", function (response) {
-                    if (response == "yes") {
-                        chrome.tabs.sendMessage(tabs[0].id, tabs[0].url , function (response) {
-                            if (response == true) {
-                                createTistoryMenu();
-                            } else {
-                                removeTistoryMenu();
-                            }
-                        });
-                    }
-                    else {
-                        chrome.tabs.executeScript(tabs[0].id, { file: "injection.js" }, function () {
-                            if (chrome.runtime.lastError) {
-                                console.error(chrome.runtime.lastError);
-                                throw Error("Unable to inject script into tab" + tabs[0].id);
-                            }
-                            chrome.tabs.sendMessage(tabs[0].id, tabs[0].url , function (response) {
-                                if (response == true) {
-                                    createTistoryMenu();
-                                } else {
-                                    removeTistoryMenu();
-                                }
-                            });
-                        });
-                    }
-                });
-            }
-        }
-    });
-}
-
-function checkInstagram(){
 	chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-		chrome.tabs.sendMessage(tabs[0].id, "exist", function (response) {
-			if (response == "yes") {
-				chrome.tabs.sendMessage(tabs[0].id, "insta" , function (response) {
-					chrome.downloads.download({
-						url: response
-                    });
-				});
-			}
-			else {
-				chrome.tabs.executeScript(tabs[0].id, { file: "injection.js" }, function () {
+        if (tabs[0].url.match(/chrome:\/\/(\S)*/)) {
+            return;
+        }
+
+        const tabId = tabs[0].id;
+
+		chrome.tabs.sendMessage(tabId, { type: 'insta' }, function (response) {
+            if (response != null) {
+                chrome.downloads.download({
+                    url: response
+                });
+            } else {
+                console.log("[download_Insta] RESPONSE NULL, execute Script.");
+
+                chrome.tabs.executeScript(tabId, { file: "injection.js" }, function () {
 					if (chrome.runtime.lastError) {
 						console.error(chrome.runtime.lastError);
-						throw Error("Unable to inject script into tab" + tabs[0].id);
-					}
-					chrome.tabs.sendMessage(tabs[0].id, "insta" , function (response) {
+						throw Error("Unable to inject script into tab" + tabId);
+                    }
+                    
+					chrome.tabs.sendMessage(tabId, { type: 'insta' }, function (response) {
 						chrome.downloads.download({
 							url: response
                         });               
 					});
 				});
-			}
+            }
 		});		
 	});
 }
 
-
-
-chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {
-    if (info.menuItemId == "twitter") {
-        var srcLink = info.srcUrl;
-        var dest = srcLink + ":orig";
-        var name = srcLink.substring(srcLink.lastIndexOf("/") + 1, srcLink.length);
-
-        chrome.downloads.download({
-            url: dest,
-            filename: name,
-        });
-    }
-    else if (info.menuItemId == "tistory" || info.menuItemId == "daum") {
-
-        var srcLink = info.srcUrl;
-		// for version 2.1
-        //var preUrl = srcLink.substring(0, srcLink.indexOf("/", 8));
-        //var postUrl = srcLink.substring(srcLink.lastIndexOf("/"), srcLink.length);
-        var dest = srcLink + "?original";
-        
-        chrome.downloads.download({
-            url: dest
-        });
-    }
-	else if(info.menuItemId == "instagram"){
-		checkInstagram();
-	}
-});
-
-chrome.browserAction.onClicked.addListener(function (tab) { //Fired when User Clicks ICON
-    if (!activated) {
-        chrome.browserAction.setIcon({
-            path: {
-                64: "./on.png"
-            }
-        });
-        checkTistory();
-
-    } else {
-        chrome.browserAction.setIcon({
-            path: {
-                64: "./off.png"
-            }
-        });
-        removeTistoryMenu();
-    }	
-	activated = !activated;
-	
-});
-
-chrome.tabs.onActiveChanged.addListener(function callback(tabId, selectInfo) {
-    checkTistory();
-});
-
+/* For Unspecific Tistory Page */
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
+    console.log("update_listener");
+
     if (changeInfo.status == "complete") {
-        if (tab.url.includes("twitter.com") || tab.url.includes("instagram.com") ) {
-            removeTistoryMenu();
-        } else {
-            checkTistory();
+        for (var regexp in urlRegexp) {
+            if (tab.url.match(regexp) != null) {
+                return;
+            }
         }
+
+        checkTistoryPage();
     }
 });
 
+function checkTistoryPage() {
+    console.log("download_tistory");
 
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        if (tabs[0].url.match(/chrome:\/\/(\S)*/)) {
+            return;
+        }
 
+        const tabId = tabs[0].id;
+
+        chrome.tabs.sendMessage(tabId, { type: 'tistory' }, function (response) {
+            if (response != null) {
+                if (response == true) {
+                    createTistoryMenu();
+                }  
+            } else {
+                chrome.tabs.executeScript(tabId, { file: "injection.js" }, function () {
+                    if (chrome.runtime.lastError) {
+                        console.error(chrome.runtime.lastError);
+                        throw Error("Unable to inject script into tab" + tabId);
+                    }
+                    
+                    chrome.tabs.sendMessage(tabId, { type: 'tistory' }, function (response) {
+                        if (response == true) {
+                            createTistoryMenu();
+                        }     
+                    });                
+                });
+            }
+        });
+    });    
+}
+
+function createTistoryMenu() {
+    if (!tistoryMenuCreatedYn) {
+        chrome.contextMenus.create({
+            title: getMenuText(),
+            contexts: ["image"],
+            id: "tistory"
+        });
+
+        tistoryMenuCreatedYn = true;
+    }
+}
+
+function removeTistoryMenu() {
+    if (tistoryMenuCreatedYn) {
+        chrome.contextMenus.remove("tistory");
+
+        tistoryMenuCreatedYn = false;
+    }
+}
