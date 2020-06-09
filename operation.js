@@ -1,5 +1,6 @@
 /* Variables */
 var hotkey = "None";
+var sortOption = "None";
 var tistoryMenuCreatedYn = false;
 
 /* Constant Values */
@@ -13,17 +14,24 @@ const imagePatterns =  [
 const pagePatterns = ["https://www.instagram.com/p/*"];
 
 const urlRegexp = {
-    'twitter' : new RegExp(/https:\/\/twitter\.com\/(\S)*/, 'g'),
-    'daum' : new RegExp(/(\w)*\.daum\.net\/(\S)*/, 'g'),
-    'instagram' : new RegExp(/https:\/\/www.instagram\.com\/[\S]*/, 'g'),
-    'tistory' : new RegExp(/https:\/\/(\w)*.tistory\.com\/[\S]*/, 'g')
+    'twitter': new RegExp(/https:\/\/twitter\.com\/(\S)*/, 'g'),
+    'daum': new RegExp(/(\S)*\.daum\.net\/(\S)*/, 'g'),
+    'instagram': new RegExp(/https:\/\/www.instagram\.com\/[\S]*/, 'g'),
+    'tistory': new RegExp(/https:\/\/(\S)*\.tistory\.com\/[\S]*/, 'g')
 };
+
+const settingPageRegexp = {
+    'chrome': new RegExp(/chrome:\/\/(\S)*/),
+    'whale': new RegExp(/whale:\/\/(\S)*/),
+}
 
 /* Chrome Settings */
 chrome.storage.local.get({
-    hotkeyOption: "None"
+    hotkeyOption: "None",
+    sortOption: "None"
 }, function(items) {    
     hotkey = items.hotkeyOption;
+    sortOption = items.sortOption;
 
     chrome.contextMenus.create({
         title: getMenuText(),
@@ -42,9 +50,11 @@ chrome.storage.local.get({
 
 chrome.storage.onChanged.addListener(function(changes, namespace) {
     chrome.storage.local.get({
-        hotkeyOption: "None"
+        hotkeyOption: "None",
+        sortOption: "None"
     }, function(items) {
         hotkey = items.hotkeyOption;
+        sortOption = items.sortOption;
 
         chrome.contextMenus.update("image", {
             title: getMenuText()
@@ -53,22 +63,26 @@ chrome.storage.onChanged.addListener(function(changes, namespace) {
         chrome.contextMenus.update("page", {
             title: getMenuText()
         });
+
+        if (tistoryMenuCreatedYn) {
+            chrome.contextMenus.update("tistory", {
+                title: getMenuText()
+            });
+        }
     }); 
 });
 
 function getMenuText() {
-    return (hotkey == "None" ? "" : hotkey) + menuText;
+    return (hotkey == "None" ? "" : hotkey + " - ") + menuText;
 }
 
-
 /* Download */
-chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {    
+chrome.contextMenus.onClicked.addListener(function onClick(info, tab) { 
     if (tab.url.match(urlRegexp['twitter']) != null) {
-        var urlMap = parsingUrl(info.srcUrl);
+        const urlMap = parsingTwitterUrl(info.srcUrl);
 
         chrome.downloads.download({
-            url: urlMap["baseUrl"] + "?format=jpg&name=4096x4096",
-            filename: urlMap["fileName"] + ".jpg"
+            url: urlMap["baseUrl"] + "?format=" + urlMap["format"] + "&name=4096x4096"
         });
     } else if (tab.url.match(urlRegexp['daum']) != null || tab.url.match(urlRegexp['tistory']) != null) {
         chrome.downloads.download({
@@ -85,56 +99,77 @@ chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {
     }
 });
 
-function parsingUrl(url) {
-    var map = {};
-    var baseSplit = url.split('?');
+chrome.downloads.onDeterminingFilename.addListener(function (downloadItem, __suggest) {
+    __suggest({ filename: getFileNamePrefix() + downloadItem.filename });
+});
 
-    map["baseUrl"] = baseSplit[0];
-    map["fileName"] = baseSplit[0].split("/")[4];
+function getFileNamePrefix() {
+    var now = new Date();
+    const formattedDate = now.toISOString().slice(0,10).replace(/-/g,"");
+
+    if (sortOption == "folderSort") {
+        return formattedDate + "/";
+    } else if (sortOption == "dateAppend") {
+        return formattedDate + "_";
+    } else {
+        return "";
+    }
+}
+
+function parsingTwitterUrl(url) {
+    var map = {};
+
+    const urlSplit = url.split('?');
+    map["baseUrl"] = urlSplit[0];
+
+    /* 파일 확장자가 URL에 명시되어 있는 경우 활용. */
+    const optionSplit = urlSplit[1].split('&');
+    map["format"] = "jpg";
+
+    for (var i=0; i<optionSplit.length; i++) {
+        const parameter = optionSplit[i].split('=');
+        map[parameter[0]] = parameter[1];
+    }
 
     return map;
 }
 
 function downloadInstagramImage() {
-    console.log("[download_Insta] ENTER");
-
-	chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        if (tabs[0].url.match(/chrome:\/\/(\S)*/)) {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        if (isBrowserSettingPage(tabs[0].url)) {
             return;
         }
 
         const tabId = tabs[0].id;
 
-		chrome.tabs.sendMessage(tabId, { type: 'insta' }, function (response) {
+        chrome.tabs.sendMessage(tabId, { type: 'insta' }, function (response) {
             if (response != null) {
                 chrome.downloads.download({
                     url: response
                 });
-            } else {
-                console.log("[download_Insta] RESPONSE NULL, execute Script.");
-
+            } else if (chrome.runtime.lastError) {
                 chrome.tabs.executeScript(tabId, { file: "injection.js" }, function () {
-					if (chrome.runtime.lastError) {
-						console.error(chrome.runtime.lastError);
-						throw Error("Unable to inject script into tab" + tabId);
+                    if (chrome.runtime.lastError) {
+                        console.error(chrome.runtime.lastError);
+                        throw Error("Unable to inject script into tab" + tabId);
                     }
-                    
-					chrome.tabs.sendMessage(tabId, { type: 'insta' }, function (response) {
-						chrome.downloads.download({
-							url: response
+
+                    chrome.tabs.sendMessage(tabId, { type: 'insta' }, function (response) {
+                        chrome.downloads.download({
+                            url: response
                         });               
-					});
-				});
+                    });
+                });
             }
-		});		
-	});
+        });		
+    });
 }
 
 /* For Unspecific Tistory Page */
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
-    console.log("update_listener");
-
     if (changeInfo.status == "complete") {
+        removeTistoryMenu();
+
         for (var regexp in urlRegexp) {
             if (tab.url.match(regexp) != null) {
                 return;
@@ -146,10 +181,8 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 });
 
 function checkTistoryPage() {
-    console.log("download_tistory");
-
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        if (tabs[0].url.match(/chrome:\/\/(\S)*/)) {
+        if (isBrowserSettingPage(tabs[0].url)) {
             return;
         }
 
@@ -160,7 +193,7 @@ function checkTistoryPage() {
                 if (response == true) {
                     createTistoryMenu();
                 }  
-            } else {
+            } else if (chrome.runtime.lastError) {
                 chrome.tabs.executeScript(tabId, { file: "injection.js" }, function () {
                     if (chrome.runtime.lastError) {
                         console.error(chrome.runtime.lastError);
@@ -178,6 +211,12 @@ function checkTistoryPage() {
     });    
 }
 
+
+function isBrowserSettingPage(url) {
+    return url.match(settingPageRegexp['chrome']) != null || url.match(settingPageRegexp['whale']) != null;
+}
+
+/* Tistory Context Menus */
 function createTistoryMenu() {
     if (!tistoryMenuCreatedYn) {
         chrome.contextMenus.create({

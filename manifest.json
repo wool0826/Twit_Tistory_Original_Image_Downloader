@@ -19,7 +19,8 @@
 		"128": "icon128.png"
 	},
 	"browser_action": {
-		"default_icon":  "icon128.png"
+		"default_icon":  "icon128.png",
+		"default_popup": "options.html"
 	},
 	"options_ui": {
 		"page": "options.html",
