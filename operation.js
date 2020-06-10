@@ -2,6 +2,7 @@
 var hotkey = "None";
 var sortOption = "None";
 var tistoryMenuCreatedYn = false;
+var useExtensionYn = false;
 
 /* Constant Values */
 const menuText = "Download Original Image";
@@ -14,15 +15,15 @@ const imagePatterns =  [
 const pagePatterns = ["https://www.instagram.com/p/*"];
 
 const urlRegexp = {
-    'twitter': new RegExp(/https:\/\/twitter\.com\/(\S)*/, 'g'),
-    'daum': new RegExp(/(\S)*\.daum\.net\/(\S)*/, 'g'),
+    'twitter': new RegExp(/https:\/\/twitter\.com\/[\S]*/, 'g'),
+    'daum': new RegExp(/[\S]*\.daum\.net\/[\S]*/, 'g'),
     'instagram': new RegExp(/https:\/\/www.instagram\.com\/[\S]*/, 'g'),
-    'tistory': new RegExp(/https:\/\/(\S)*\.tistory\.com\/[\S]*/, 'g')
+    'tistory': new RegExp(/https:\/\/[\S]*\.tistory\.com\/[\S]*/, 'g')
 };
 
 const settingPageRegexp = {
-    'chrome': new RegExp(/chrome:\/\/(\S)*/),
-    'whale': new RegExp(/whale:\/\/(\S)*/),
+    'chrome': new RegExp(/chrome:\/\/[\S]*/),
+    'whale': new RegExp(/whale:\/\/[\S]*/),
 }
 
 /* Chrome Settings */
@@ -81,31 +82,39 @@ chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {
     if (tab.url.match(urlRegexp['twitter']) != null) {
         const urlMap = parsingTwitterUrl(info.srcUrl);
 
-        chrome.downloads.download({
-            url: urlMap["baseUrl"] + "?format=" + urlMap["format"] + "&name=4096x4096"
-        });
+        downloadImage(urlMap["baseUrl"] + "?format=" + urlMap["format"] + "&name=4096x4096");
     } else if (tab.url.match(urlRegexp['daum']) != null || tab.url.match(urlRegexp['tistory']) != null) {
-        chrome.downloads.download({
-            url: info.srcUrl + "?original"
-        });
+        downloadImage(info.srcUrl + "?original");
     } else if (tab.url.match(urlRegexp['instagram']) != null) {
-        downloadInstagramImage();
+        downloadImageForInstagram();
     } else if (info.menuItemId == 'tistory') {
-        chrome.downloads.download({
-            url: info.srcUrl + "?original"
-        });
+        downloadImage(info.srcUrl + "?original");
     } else {
         alert("인식할 수 없는 URL입니다!. " + tab.url);
     }
 });
 
-chrome.downloads.onDeterminingFilename.addListener(function (downloadItem, __suggest) {
-    __suggest({ filename: getFileNamePrefix() + downloadItem.filename });
+function downloadImage(imageUrl) {
+    useExtensionYn = true;
+
+    chrome.downloads.download({
+        url: imageUrl
+    });
+}
+
+
+chrome.downloads.onDeterminingFilename.addListener(function (downloadItem, suggest) {
+    if (useExtensionYn) {
+        useExtensionYn = false;
+        suggest({ filename: getFileNamePrefix() + downloadItem.filename });
+    } else {
+        suggest({ filename: downloadItem.filename }); 
+    }
 });
 
 function getFileNamePrefix() {
     var now = new Date();
-    const formattedDate = now.toISOString().slice(0,10).replace(/-/g,"");
+    const formattedDate = now.toISOString().slice(2,10).replace(/-/g,"");
 
     if (sortOption == "folderSort") {
         return formattedDate + "/";
@@ -134,7 +143,7 @@ function parsingTwitterUrl(url) {
     return map;
 }
 
-function downloadInstagramImage() {
+function downloadImageForInstagram() {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         if (isBrowserSettingPage(tabs[0].url)) {
             return;
@@ -144,9 +153,7 @@ function downloadInstagramImage() {
 
         chrome.tabs.sendMessage(tabId, { type: 'insta' }, function (response) {
             if (response != null) {
-                chrome.downloads.download({
-                    url: response
-                });
+                downloadImage(response);
             } else if (chrome.runtime.lastError) {
                 chrome.tabs.executeScript(tabId, { file: "injection.js" }, function () {
                     if (chrome.runtime.lastError) {
@@ -155,9 +162,7 @@ function downloadInstagramImage() {
                     }
 
                     chrome.tabs.sendMessage(tabId, { type: 'insta' }, function (response) {
-                        chrome.downloads.download({
-                            url: response
-                        });               
+                        downloadImage(response);              
                     });
                 });
             }
