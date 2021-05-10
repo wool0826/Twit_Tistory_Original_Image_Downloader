@@ -20,8 +20,7 @@ const urlRegexp = {
     'daum': new RegExp(/[\S]*\.daum\.net\/[\S]*/, 'g'),
     'instagram': new RegExp(/https:\/\/www.instagram\.com\/[\S]*/, 'g'),
     'tistory': new RegExp(/https:\/\/[\S]*\.tistory\.com\/[\S]*/, 'g'),
-    'tweetdeck-site': new RegExp(/https:\/\/tweetdeck\.twitter\.com/, 'g'),
-    'tweetdeck-image': new RegExp(/https:\/\/[\S]*\.t\.co\/[\S]*/, 'g')
+    'tweetdeck-site': new RegExp(/https:\/\/tweetdeck\.twitter\.com/, 'g')
 };
 
 const settingPageRegexp = {
@@ -94,7 +93,7 @@ function getMenuText() {
 /* Download */
 chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {
     if (tab.url.match(urlRegexp['twitter']) != null) {
-        downloadTwitterImages([info.srcUrl]);
+        downloadTwitterImages([ info.srcUrl ]);
     } else if (tab.url.match(urlRegexp['daum']) != null || tab.url.match(urlRegexp['tistory']) != null) {
         downloadImage(info.srcUrl + "?original");
     } else if (tab.url.match(urlRegexp['instagram']) != null) {
@@ -102,9 +101,9 @@ chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {
     } else if (info.menuItemId == 'tistory') {
         downloadImage(info.srcUrl + "?original");
     } else if (tab.url.match(urlRegexp['tweetdeck-site']) != null) {
-        if (info.srcUrl != null) { // image Type
-            downloadTwitterImages([info.srcUrl]);
-        } else { // link Type
+        if (info.srcUrl != null) {
+            downloadTwitterImages([ info.srcUrl ]);
+        } else {
             downloadImageByLinkForTweetdeck(info.linkUrl);
         }
     } else {
@@ -169,33 +168,22 @@ function getFileNamePrefix() {
 }
 
 function downloadImageForInstagram() {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        if (isBrowserSettingPage(tabs[0].url)) {
-            return;
+    queryWithInjectedCodes({ type: "insta" }, downloadImage);
+}
+
+function downloadImageByLinkForTweetdeck(href) {
+    queryWithInjectedCodes({ type: "tweetdeck", link: href }, downloadTwitterImages);
+}
+
+function checkTistoryPage() {
+    queryWithInjectedCodes({ type: "tistory" }, function(response) {
+        if (response == true) {
+            createTistoryMenu();
         }
-
-        const tabId = tabs[0].id;
-
-        chrome.tabs.sendMessage(tabId, { type: 'insta' }, function (response) {
-            if (response != null) {
-                downloadImage(response);
-            } else if (chrome.runtime.lastError) {
-                chrome.tabs.executeScript(tabId, { file: "injection.js" }, function () {
-                    if (chrome.runtime.lastError) {
-                        console.error(chrome.runtime.lastError);
-                        throw Error("Unable to inject script into tab" + tabId);
-                    }
-
-                    chrome.tabs.sendMessage(tabId, { type: 'insta' }, function (response) {
-                        downloadImage(response);              
-                    });
-                });
-            }
-        });		
     });
 }
 
-function downloadImageByLinkForTweetdeck(reference) {
+function queryWithInjectedCodes(request, callback) {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         if (isBrowserSettingPage(tabs[0].url)) {
             return;
@@ -203,9 +191,9 @@ function downloadImageByLinkForTweetdeck(reference) {
 
         const tabId = tabs[0].id;
 
-        chrome.tabs.sendMessage(tabId, { type: 'tweetdeck', link: reference }, function (response) {
+        chrome.tabs.sendMessage(tabId, request, function (response) {
             if (response != null) {
-                downloadTwitterImages(response);
+                callback(response);
             } else if (chrome.runtime.lastError) {
                 chrome.tabs.executeScript(tabId, { file: "injection.js" }, function () {
                     if (chrome.runtime.lastError) {
@@ -213,8 +201,8 @@ function downloadImageByLinkForTweetdeck(reference) {
                         throw Error("Unable to inject script into tab" + tabId);
                     }
 
-                    chrome.tabs.sendMessage(tabId, { type: 'tweetdeck', link: reference }, function (response) {
-                        downloadTwitterImages(response);             
+                    chrome.tabs.sendMessage(tabId, request, function (response) {
+                        callback(response);             
                     });
                 });
             }
@@ -236,38 +224,6 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
         checkTistoryPage();
     }
 });
-
-function checkTistoryPage() {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        if (isBrowserSettingPage(tabs[0].url)) {
-            return;
-        }
-
-        const tabId = tabs[0].id;
-
-        chrome.tabs.sendMessage(tabId, { type: 'tistory' }, function (response) {
-            if (response != null) {
-                if (response == true) {
-                    createTistoryMenu();
-                }  
-            } else if (chrome.runtime.lastError) {
-                chrome.tabs.executeScript(tabId, { file: "injection.js" }, function () {
-                    if (chrome.runtime.lastError) {
-                        console.error(chrome.runtime.lastError);
-                        throw Error("Unable to inject script into tab" + tabId);
-                    }
-                    
-                    chrome.tabs.sendMessage(tabId, { type: 'tistory' }, function (response) {
-                        if (response == true) {
-                            createTistoryMenu();
-                        }     
-                    });                
-                });
-            }
-        });
-    });    
-}
-
 
 function isBrowserSettingPage(url) {
     return url.match(settingPageRegexp['chrome']) != null || url.match(settingPageRegexp['whale']) != null;
