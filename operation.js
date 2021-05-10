@@ -13,12 +13,14 @@ const imagePatterns =  [
     "https://*.tistory.com/*"
 ];
 const pagePatterns = ["https://www.instagram.com/p/*"];
+const linkPatterns = ["https://tweetdeck.twitter.com/*"];
 
 const urlRegexp = {
     'twitter': new RegExp(/https:\/\/twitter\.com\/[\S]*/, 'g'),
     'daum': new RegExp(/[\S]*\.daum\.net\/[\S]*/, 'g'),
     'instagram': new RegExp(/https:\/\/www.instagram\.com\/[\S]*/, 'g'),
-    'tistory': new RegExp(/https:\/\/[\S]*\.tistory\.com\/[\S]*/, 'g')
+    'tistory': new RegExp(/https:\/\/[\S]*\.tistory\.com\/[\S]*/, 'g'),
+    'tweetdeck-site': new RegExp(/https:\/\/tweetdeck\.twitter\.com/, 'g')
 };
 
 const settingPageRegexp = {
@@ -47,6 +49,13 @@ chrome.storage.local.get({
         documentUrlPatterns: pagePatterns,
         id: "page"
     });
+
+    chrome.contextMenus.create({
+        title: getMenuText(),
+        contexts: ["link"],
+        documentUrlPatterns: linkPatterns,
+        id: "link"
+    });
 });
 
 chrome.storage.onChanged.addListener(function(changes, namespace) {
@@ -65,6 +74,10 @@ chrome.storage.onChanged.addListener(function(changes, namespace) {
             title: getMenuText()
         });
 
+        chrome.contextMenus.update("link", {
+            title: getMenuText()
+        });
+
         if (tistoryMenuCreatedYn) {
             chrome.contextMenus.update("tistory", {
                 title: getMenuText()
@@ -78,21 +91,51 @@ function getMenuText() {
 }
 
 /* Download */
-chrome.contextMenus.onClicked.addListener(function onClick(info, tab) { 
+chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {
     if (tab.url.match(urlRegexp['twitter']) != null) {
-        const urlMap = parsingTwitterUrl(info.srcUrl);
-
-        downloadImage(urlMap["baseUrl"] + "?format=" + urlMap["format"] + "&name=4096x4096");
+        downloadTwitterImages([ info.srcUrl ]);
     } else if (tab.url.match(urlRegexp['daum']) != null || tab.url.match(urlRegexp['tistory']) != null) {
         downloadImage(info.srcUrl + "?original");
     } else if (tab.url.match(urlRegexp['instagram']) != null) {
         downloadImageForInstagram();
     } else if (info.menuItemId == 'tistory') {
         downloadImage(info.srcUrl + "?original");
+    } else if (tab.url.match(urlRegexp['tweetdeck-site']) != null) {
+        if (info.srcUrl != null) {
+            downloadTwitterImages([ info.srcUrl ]);
+        } else {
+            downloadImageByLinkForTweetdeck(info.linkUrl);
+        }
     } else {
         alert("인식할 수 없는 URL입니다!. " + tab.url);
     }
 });
+
+
+function downloadTwitterImages(imageUrls) {
+    for (var index in imageUrls) {
+        const urlMap = parsingTwitterUrl(imageUrls[index]);
+        downloadImage(urlMap["baseUrl"] + "?format=" + urlMap["format"] + "&name=4096x4096");
+    }
+}
+
+function parsingTwitterUrl(url) {
+    var map = {};
+
+    const urlSplit = url.split('?');
+    map["baseUrl"] = urlSplit[0];
+
+    /* 파일 확장자가 URL에 명시되어 있는 경우 활용. */
+    const optionSplit = urlSplit[1].split('&');
+    map["format"] = "jpg";
+
+    for (var i=0; i<optionSplit.length; i++) {
+        const parameter = optionSplit[i].split('=');
+        map[parameter[0]] = parameter[1];
+    }
+
+    return map;
+}
 
 function downloadImage(imageUrl) {
     useExtensionYn = true;
@@ -101,7 +144,6 @@ function downloadImage(imageUrl) {
         url: imageUrl
     });
 }
-
 
 chrome.downloads.onDeterminingFilename.addListener(function (downloadItem, suggest) {
     if (useExtensionYn) {
@@ -125,25 +167,23 @@ function getFileNamePrefix() {
     }
 }
 
-function parsingTwitterUrl(url) {
-    var map = {};
-
-    const urlSplit = url.split('?');
-    map["baseUrl"] = urlSplit[0];
-
-    /* 파일 확장자가 URL에 명시되어 있는 경우 활용. */
-    const optionSplit = urlSplit[1].split('&');
-    map["format"] = "jpg";
-
-    for (var i=0; i<optionSplit.length; i++) {
-        const parameter = optionSplit[i].split('=');
-        map[parameter[0]] = parameter[1];
-    }
-
-    return map;
+function downloadImageForInstagram() {
+    queryWithInjectedCodes({ type: "insta" }, downloadImage);
 }
 
-function downloadImageForInstagram() {
+function downloadImageByLinkForTweetdeck(href) {
+    queryWithInjectedCodes({ type: "tweetdeck", link: href }, downloadTwitterImages);
+}
+
+function checkTistoryPage() {
+    queryWithInjectedCodes({ type: "tistory" }, function(response) {
+        if (response == true) {
+            createTistoryMenu();
+        }
+    });
+}
+
+function queryWithInjectedCodes(request, callback) {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         if (isBrowserSettingPage(tabs[0].url)) {
             return;
@@ -151,9 +191,9 @@ function downloadImageForInstagram() {
 
         const tabId = tabs[0].id;
 
-        chrome.tabs.sendMessage(tabId, { type: 'insta' }, function (response) {
+        chrome.tabs.sendMessage(tabId, request, function (response) {
             if (response != null) {
-                downloadImage(response);
+                callback(response);
             } else if (chrome.runtime.lastError) {
                 chrome.tabs.executeScript(tabId, { file: "injection.js" }, function () {
                     if (chrome.runtime.lastError) {
@@ -161,8 +201,8 @@ function downloadImageForInstagram() {
                         throw Error("Unable to inject script into tab" + tabId);
                     }
 
-                    chrome.tabs.sendMessage(tabId, { type: 'insta' }, function (response) {
-                        downloadImage(response);              
+                    chrome.tabs.sendMessage(tabId, request, function (response) {
+                        callback(response);             
                     });
                 });
             }
@@ -184,38 +224,6 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
         checkTistoryPage();
     }
 });
-
-function checkTistoryPage() {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        if (isBrowserSettingPage(tabs[0].url)) {
-            return;
-        }
-
-        const tabId = tabs[0].id;
-
-        chrome.tabs.sendMessage(tabId, { type: 'tistory' }, function (response) {
-            if (response != null) {
-                if (response == true) {
-                    createTistoryMenu();
-                }  
-            } else if (chrome.runtime.lastError) {
-                chrome.tabs.executeScript(tabId, { file: "injection.js" }, function () {
-                    if (chrome.runtime.lastError) {
-                        console.error(chrome.runtime.lastError);
-                        throw Error("Unable to inject script into tab" + tabId);
-                    }
-                    
-                    chrome.tabs.sendMessage(tabId, { type: 'tistory' }, function (response) {
-                        if (response == true) {
-                            createTistoryMenu();
-                        }     
-                    });                
-                });
-            }
-        });
-    });    
-}
-
 
 function isBrowserSettingPage(url) {
     return url.match(settingPageRegexp['chrome']) != null || url.match(settingPageRegexp['whale']) != null;
