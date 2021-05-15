@@ -5,7 +5,7 @@ var tistoryMenuCreatedYn = false;
 var useExtensionYn = false;
 
 /* Constant Values */
-const menuText = "Download Original Image";
+const baseMenuText = "Download Original Image";
 const imagePatterns =  [
     "https://twitter.com/*", 
     "https://*.daum.net/*", 
@@ -87,13 +87,18 @@ chrome.storage.onChanged.addListener(function(changes, namespace) {
 });
 
 function getMenuText() {
-    return (hotkey == "None" ? "" : hotkey + " - ") + menuText;
+    return (hotkey == "None" ? "" : hotkey + " - ") + baseMenuText;
 }
 
 /* Download */
 chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {
+    console.log(info);
+    console.log(tab);
+
+    console.log(info.linkUrl);
+
     if (tab.url.match(urlRegexp['twitter']) != null) {
-        downloadTwitterImages([ info.srcUrl ]);
+        // downloadTwitterImages([ info.srcUrl ]);
     } else if (tab.url.match(urlRegexp['daum']) != null || tab.url.match(urlRegexp['tistory']) != null) {
         downloadImage(info.srcUrl + "?original");
     } else if (tab.url.match(urlRegexp['instagram']) != null) {
@@ -104,7 +109,7 @@ chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {
         if (info.srcUrl != null) {
             downloadTwitterImages([ info.srcUrl ]);
         } else {
-            downloadImageByLinkForTweetdeck(info.linkUrl);
+            downloadImageForTwitterByLink(info.linkUrl);
         }
     } else {
         alert("인식할 수 없는 URL입니다!. " + tab.url);
@@ -171,7 +176,7 @@ function downloadImageForInstagram() {
     queryWithInjectedCodes({ type: "insta" }, downloadImage);
 }
 
-function downloadImageByLinkForTweetdeck(href) {
+function downloadImageForTwitterByLink(href) {
     queryWithInjectedCodes({ type: "tweetdeck", link: href }, downloadTwitterImages);
 }
 

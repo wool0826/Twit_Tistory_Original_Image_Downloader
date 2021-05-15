@@ -1,8 +1,8 @@
 {
 	"manifest_version": 2,
 	"name": "Original Size Image Downloader",
-	"description": "트위터,티스토리,인스타그램,다음카페에서 원본 이미지를 쉽게 다운받아주는 프로그램",
-	"version": "0.31",
+	"description": "트위터(+ tweetdeck),티스토리,인스타그램,다음카페에서 원본 이미지를 쉽게 다운받아주는 프로그램",
+	"version": "0.32",
 	"permissions": [
 		"contextMenus",
 		"downloads",

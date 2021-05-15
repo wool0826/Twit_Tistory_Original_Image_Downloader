@@ -5,57 +5,53 @@
 </head>
 
 <body>
+  <table class="container">
+    <tr>
+      <td class="key_data">다운로드 단축키 (Hotkey)</td>
+      <td class="select_data">
+        <select id="hotkeys">
+          <option value="None">None</option>
+          <option value="D">D</option>
+          <option value="E">E</option>
+          <option value="G">G</option>
+          <option value="H">H</option>
+          <option value="I">I</option>
+          <option value="J">J</option>
+          <option value="K">K</option>
+          <option value="L">L</option>
+          <option value="M">M</option>
+          <option value="O">O</option>
+          <option value="Q">Q</option>
+          <option value="S">S</option>
+          <option value="U">U</option>
+          <option value="W">W</option>
+          <option value="X">X</option>
+          <option value="Y">Y</option>
+          <option value="Z">Z</option>
+        </select>
+      </td>
+    </tr>
+    
+    <tr>
+      <td class="key_data">저장 방식</td>
+      <td class="select_data">
+        <select id="sort_method">
+          <option value="None">None</option>
+          <option value="folderSort">날짜 별 폴더에 저장</option>
+          <option value="dateAppend">파일에 날짜 추가하여 저장</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td class="button_data" colspan="2">
+        <button id="submit">save</button>
+      </td>
+    </tr> 
+  </table>
 
+  <div id="status">
+  </div>
 
-
-
-<table class="container">
-  <tr>
-    <td class="key_data">바로가기(Shortcut)</td>
-    <td class="select_data">
-      <select id="hotkeys">
-        <option value="None">None</option>
-        <option value="D">D</option>
-        <option value="E">E</option>
-        <option value="G">G</option>
-        <option value="H">H</option>
-        <option value="I">I</option>
-        <option value="J">J</option>
-        <option value="K">K</option>
-        <option value="L">L</option>
-        <option value="M">M</option>
-        <option value="O">O</option>
-        <option value="Q">Q</option>
-        <option value="S">S</option>
-        <option value="U">U</option>
-        <option value="W">W</option>
-        <option value="X">X</option>
-        <option value="Y">Y</option>
-        <option value="Z">Z</option>
-      </select>
-    </td>
-  </tr>
-  <tr>
-    <td class="key_data">저장 방식</td>
-    <td class="select_data">
-      <select id="sort_method">
-        <option value="None">None</option>
-        <option value="folderSort">날짜 별 폴더에 저장</option>
-        <option value="dateAppend">파일 이름에 날짜 추가</option>
-      </select>
-    </td>
-  </tr>
-  <tr>
-    <td class="button_data" colspan="2">
-      <button id="submit">저장(save)</button>
-    </td>
-  </tr> 
-</table>
-
-
-<div id="status">
-</div>
-
-<script src="js/bodyScript.js"></script>
+  <script src="js/bodyScript.js"></script>
 </body>
 </html>
