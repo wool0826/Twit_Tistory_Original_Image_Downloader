@@ -5,7 +5,7 @@ const iconUrl = chrome.runtime.getURL("../icon/icon24.png");
 const downloadButtonClassName = "org-down";
 
 const articleQuerySelector = "div.css-1dbjc4n.r-1iusvr4.r-16y2uox.r-1777fci.r-kzbkwu";
-const articleImageQuerySelector = "img.css-9pa8cd[alt='Image']";
+const articleImageQuerySelector = "img.css-9pa8cd[src^='https://pbs.twimg.com/media/']";
 const articleToolbarQuerySelector = "div.css-1dbjc4n.r-18u37iz.r-1wtj0ep.r-1s2bzr4.r-1mdbhws";
 
 const wrapperClass = "css-1dbjc4n r-18u37iz r-1h0z5md";
@@ -54,7 +54,6 @@ function existDownloadButtonIn(toolbar) {
 }
 
 function generateDownloadButton(imageLinks) {
-
     const toplevelWrapper = generateDOMElement({
         type: "div",
         className: wrapperClass
