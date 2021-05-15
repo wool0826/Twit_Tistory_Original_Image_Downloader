@@ -122,16 +122,27 @@ function downloadTwitterImages(imageUrls) {
 function parsingTwitterUrl(url) {
     var map = {};
 
+    map["baseUrl"] = url; // set default url
+    map["format"] = "jpg"; // set default format
+
+    if (!url.includes('?')) {
+        return map;
+    }
+
     const urlSplit = url.split('?');
     map["baseUrl"] = urlSplit[0];
 
-    /* 파일 확장자가 URL에 명시되어 있는 경우 활용. */
+    if (!urlSplit[1].includes('&')) {
+        return map;
+    }
+
     const optionSplit = urlSplit[1].split('&');
-    map["format"] = "jpg";
 
     for (var i=0; i<optionSplit.length; i++) {
-        const parameter = optionSplit[i].split('=');
-        map[parameter[0]] = parameter[1];
+        if (optionSplit[i].includes('=')) {
+            const parameter = optionSplit[i].split('=');
+            map[parameter[0]] = parameter[1];
+        }
     }
 
     return map;
