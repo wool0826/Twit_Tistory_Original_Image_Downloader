@@ -2,9 +2,9 @@
 var hotkey = "None";
 var sortOption = "None";
 var tistoryMenuCreatedYn = false;
-var useExtensionYn = false;
 
 /* Constant Values */
+const extensionId = chrome.runtime.id;
 const baseMenuText = "Download Original Image";
 const imagePatterns =  [
     "https://twitter.com/*", 
@@ -92,13 +92,8 @@ function getMenuText() {
 
 /* Download */
 chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {
-    console.log(info);
-    console.log(tab);
-
-    console.log(info.linkUrl);
-
     if (tab.url.match(urlRegexp['twitter']) != null) {
-        // downloadTwitterImages([ info.srcUrl ]);
+        downloadTwitterImages([ info.srcUrl ]);
     } else if (tab.url.match(urlRegexp['daum']) != null || tab.url.match(urlRegexp['tistory']) != null) {
         downloadImage(info.srcUrl + "?original");
     } else if (tab.url.match(urlRegexp['instagram']) != null) {
@@ -143,16 +138,13 @@ function parsingTwitterUrl(url) {
 }
 
 function downloadImage(imageUrl) {
-    useExtensionYn = true;
-
     chrome.downloads.download({
         url: imageUrl
     });
 }
 
 chrome.downloads.onDeterminingFilename.addListener(function (downloadItem, suggest) {
-    if (useExtensionYn) {
-        useExtensionYn = false;
+    if (downloadItem.byExtensionId == extensionId) {
         suggest({ filename: getFileNamePrefix() + downloadItem.filename });
     } else {
         suggest({ filename: downloadItem.filename }); 
@@ -200,7 +192,7 @@ function queryWithInjectedCodes(request, callback) {
             if (response != null) {
                 callback(response);
             } else if (chrome.runtime.lastError) {
-                chrome.tabs.executeScript(tabId, { file: "injection.js" }, function () {
+                chrome.tabs.executeScript(tabId, { file: "js/messageReceiver.js" }, function () {
                     if (chrome.runtime.lastError) {
                         console.error(chrome.runtime.lastError);
                         throw Error("Unable to inject script into tab" + tabId);
@@ -254,3 +246,9 @@ function removeTistoryMenu() {
         tistoryMenuCreatedYn = false;
     }
 }
+
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    if (request.type == "twitterMultiple") {
+        downloadTwitterImages(request.links);
+    }
+});

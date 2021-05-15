@@ -2,7 +2,7 @@
 	"manifest_version": 2,
 	"name": "Original Size Image Downloader",
 	"description": "트위터(+ tweetdeck),티스토리,인스타그램,다음카페에서 원본 이미지를 쉽게 다운받아주는 프로그램",
-	"version": "0.32",
+	"version": "0.4",
 	"permissions": [
 		"contextMenus",
 		"downloads",
@@ -10,20 +10,30 @@
 		"tabs",
 		"<all_urls>"
 	],
+	"content_scripts": [
+		{
+			"matches": [ "https://twitter.com/*" ],
+			"run_at": "document_idle",
+			"js": [ "js/twitterMultipleDownloader.js" ]
+		}
+	],
 	"background": {
-		"scripts": [ "operation.js" ]
+		"scripts": [ "js/operation.js" ]
 	},
 	"icons": {
-		"16": "icon128.png",
-		"48": "icon128.png",
-		"128": "icon128.png"
+		"16": "icon/icon128.png",
+		"48": "icon/icon128.png",
+		"128": "icon/icon128.png"
 	},
+	"web_accessible_resources": [
+		"icon/icon24.png"
+	],
 	"browser_action": {
-		"default_icon":  "icon128.png",
-		"default_popup": "options.html"
+		"default_icon":  "icon/icon128.png",
+		"default_popup": "html/options.html"
 	},
 	"options_ui": {
-		"page": "options.html",
+		"page": "html/options.html",
 		"open_in_tab": false
 	}
 }
