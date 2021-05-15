@@ -16,7 +16,6 @@ const downloadImageClass = "r-4qtqp9 r-yyyyoo r-1xvli5t r-dnmrzs r-bnwqim r-1plc
 
 setInterval(function() {
     const articles = document.querySelectorAll(articleQuerySelector);
-
     for (const articleIndex in articles) {
         if (!(articles[articleIndex] instanceof Node)) {
             continue;
