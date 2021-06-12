@@ -113,8 +113,8 @@ chrome.contextMenus.onClicked.addListener(function onClick(info, tab) {
 
 
 function downloadTwitterImages(imageUrls) {
-    for (var index in imageUrls) {
-        const urlMap = parsingTwitterUrl(imageUrls[index]);
+    for (let imageUrl of imageUrls) {
+        const urlMap = parsingTwitterUrl(imageUrl);
         downloadImage(urlMap["baseUrl"] + "?format=" + urlMap["format"] + "&name=4096x4096");
     }
 }
