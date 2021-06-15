@@ -4,9 +4,6 @@
 
 트위터, 티스토리, 인스타그램, 다음카페에서 원본 이미지를 쉽게 다운받아주는 프로그램
 
-![확장-숏컷](https://user-images.githubusercontent.com/19607962/107649169-896bdc00-6cc0-11eb-8c23-d553e6f7314b.png)
-![설정](https://user-images.githubusercontent.com/19607962/107649180-8bce3600-6cc0-11eb-97b7-4335607132f7.png)
-
 ## 사용 방법
 
 ### 트위터
