@@ -21,16 +21,15 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         sendResponse(false);
     } else if (request.type == 'tweetdeck') {
         const link = document.getElementsByClassName("js-media-image-link");
-        var targetImageList = [];
+        var targetImageList = new Set();
 
         for (var i = 0; i < link.length; i++) {
             if (link[i].href == request.link) {
                 const imageUrl = link[i].style.backgroundImage; // scheme: url("${imageUrl}")
-                targetImageList.push(imageUrl.split("\"")[1]);
+                targetImageList.add(imageUrl.split("\"")[1]);
             }
         }
-
-        sendResponse(targetImageList);
+        sendResponse(Array.from(targetImageList));
     } else {
         sendResponse(null);
     }
